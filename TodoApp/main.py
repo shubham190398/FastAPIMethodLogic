@@ -22,7 +22,6 @@ def get_db():
         db.close()
 
 
-
 class TodoRequest(BaseModel):
     title: str = Field(min_length=3)
     description: str = Field(min_length=3, max_length=500)
@@ -56,7 +55,7 @@ async def create_todo(db: db_dependency, todo_request: TodoRequest):
 
 
 @app.put("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def update_todo(db: db_dependency, todo_id: int, todo_request: TodoRequest):
+async def update_todo(db: db_dependency, todo_request: TodoRequest, todo_id: int = Path(gt=0)):
     todo_model = db.query(Todos).filter(Todos.id == todo_id).first()
 
     if todo_model is None:
