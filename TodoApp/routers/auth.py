@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from models import Users
@@ -7,9 +9,13 @@ from database import SessionLocal
 from sqlalchemy.orm import Session
 from starlette import status
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import jwt
+from datetime import timedelta
 
 
 router = APIRouter()
+SECRET_KEY = '64f29f615d0008690faff1a80044424a'
+ALGORITHM = 'HS256'
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
@@ -43,7 +49,14 @@ def authenticate_user(username: str, password: str, db: db_dependency):
     if not bcrypt_context.verify(password, user.hashed_password):
         return False
 
-    return True
+    return user
+
+
+def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+    encode = {'sub': username, 'id': user_id}
+    expires = datetime.datetime.utcnow() + expires_delta
+    encode.update({'exp': expires})
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 @router.post("/auth/", status_code=status.HTTP_201_CREATED)
@@ -69,5 +82,6 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
 
     if not user:
         return "Failed Authentication"
-    else:
-        return "Successful Authentication"
+
+    token = create_access_token(user.username, user.id, timedelta(minutes=20))
+    return token
